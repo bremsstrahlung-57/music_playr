@@ -49,4 +49,3 @@ set(PROJECT_VERSION
   "${music_playr_Version_Major}.${music_playr_Version_Minor}.${music_playr_Version_Patch}${music_playr_Version_Status}"
 )
 message(STATUS "${PROJECT_NAME} version: ${PROJECT_VERSION}")
-
