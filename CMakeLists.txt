@@ -4,8 +4,9 @@ project(music_playr)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(music_playr 
+add_executable(music_playr
   src/main.cpp
+  src/audio.cpp
   src/player.cpp
   src/glad.c
   src/ImGui/imgui.cpp

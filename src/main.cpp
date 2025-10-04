@@ -1,8 +1,9 @@
 #include "player.hpp"
-#include <stdio.h>
+#include "audio.hpp"
+#include <iostream>
 
-int main()
-{
-    newWindow();
-    return 0;
+int main() {
+  newWindow();
+  play_audio();
+  return 0;
 }

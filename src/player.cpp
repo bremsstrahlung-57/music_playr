@@ -1,6 +1,10 @@
 #include "../include/player.hpp"
 #include <stdio.h>
+#include <vector>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 int newWindow()
@@ -16,7 +20,7 @@ int newWindow()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-    GLFWwindow* window = glfwCreateWindow(800, 600, "ImGui Test Window", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Music Playr", NULL, NULL);
     if (window == NULL) {
         fprintf(stderr, "Failed to create GLFW window\n");
         glfwTerminate();
@@ -43,20 +47,12 @@ int newWindow()
     ImGui_ImplOpenGL3_Init("#version 330");
 
     // Main loop
-    bool show_window = true;
-
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
-        if (show_window) {
-            ImGui::Begin("Hello, world!", &show_window);
-            ImGui::Text("If you see this, ImGui is working!");
-            ImGui::End();
-        }
 
         ImGui::Render();
         int display_w, display_h;
