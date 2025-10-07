@@ -3,7 +3,9 @@
 #include <iostream>
 
 int main() {
-  newWindow();
-  play_audio();
+  music start;
+  start.music_list();
+  start.play_audio(false);
+  // newWindow();
   return 0;
 }
