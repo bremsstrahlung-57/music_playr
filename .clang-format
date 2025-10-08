@@ -1,0 +1,12 @@
+---
+BasedOnStyle: Google
+Standard: Latest
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: Never
+ColumnLimit: 120
+Cpp11BracedListStyle: true
+NamespaceIndentation: All
+...

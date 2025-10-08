@@ -4,7 +4,7 @@
 
 int main() {
   music start;
-  start.music_list();
+  // start.music_list();
   start.play_audio(false);
   // newWindow();
   return 0;

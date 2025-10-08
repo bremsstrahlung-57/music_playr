@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(music_playr
   src/main.cpp
+  src/db.cpp
   src/audio.cpp
   src/list.cpp
   src/player.cpp
@@ -27,8 +28,10 @@ target_include_directories(music_playr PRIVATE
 
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(SQLite3 REQUIRED)
 
-target_link_libraries(music_playr PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE SQLite::SQLite3)
+target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
     OpenGL::GL
 )
@@ -42,7 +45,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "music_playr Build Type: ${CMAKE_BUILD_TYPE}")
 
-# Set the version for music_playr
 set(music_playr_Version_Major 0)
 set(music_playr_Version_Minor 1)
 set(music_playr_Version_Patch 0)
