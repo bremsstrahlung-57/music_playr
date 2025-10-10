@@ -29,11 +29,13 @@ target_include_directories(music_playr PRIVATE
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(SQLite3 REQUIRED)
+find_package(Taglib REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE SQLite::SQLite3)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
     OpenGL::GL
+    SQLite::SQLite3
+    tag
 )
 
 if(NOT CMAKE_BUILD_TYPE)
