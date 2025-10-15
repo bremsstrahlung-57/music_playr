@@ -4,7 +4,6 @@
 #include <taglib/tag.h>
 
 #include <chrono>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -126,6 +125,73 @@ std::vector<Track> Database::get_all_tracks() {
     sqlite3_finalize(stmt);
 
     return tracks;
+}
+
+int Database::get_track_by_id(int id) {
+    const char* sql = "SELECT file_path, title, artist, play_count FROM tracks WHERE id = ?";
+
+    sqlite3_stmt* stmt;
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    sqlite3_bind_int(stmt, 1, id);
+
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW) {
+        std::string file_path = get_text(stmt, 0);
+        std::string title = get_text(stmt, 1);
+        std::string artist = get_text(stmt, 2);
+        int play_count = sqlite3_column_int(stmt, 3);
+
+        std::cout << "  Title:  " << title << "\n";
+        std::cout << "  Artist: " << artist << "\n";
+        std::cout << "  Path:   " << file_path << "\n";
+        std::cout << "  Times Played:   " << play_count << "\n";
+
+    } else {
+        std::cerr << "Track not found with ID [" << id << "].\n";
+        sqlite3_finalize(stmt);
+        return 1;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return 0;
+}
+
+int Database::delete_track(int id) {
+    const char* sql = "DELETE FROM tracks WHERE id = ?";
+
+    sqlite3_stmt* stmt;
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        return 1;
+    }
+
+    if (get_track_by_id(id) == 0) {
+        sqlite3_bind_int(stmt, 1, id);
+
+        rc = sqlite3_step(stmt);
+
+        if (rc != SQLITE_DONE) {
+            std::cerr << "Delete failed: " << sqlite3_errmsg(db) << std::endl;
+        } else {
+            std::cout << "Track deleted successfully.\n";
+        }
+
+    } else {
+        std::cerr << "Failed to Delete: " << sqlite3_errmsg(db) << std::endl;
+        sqlite3_finalize(stmt);
+        return 1;
+    }
+
+    sqlite3_finalize(stmt);
+    return 0;
 }
 
 AudioMetadata Database::get_metadata(const char* file_path) {
