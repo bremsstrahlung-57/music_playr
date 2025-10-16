@@ -1,22 +1,29 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
-#include <memory>
-#include <string>
-#include <variant>
-
+#include "db.hpp"
 #include "miniaudio/miniaudio.h"
+#include <cstddef>
+#include <iostream>
+#include <vector>
 
-class music {
-   private:
-    std::string directory_path;
+enum class PlayState { NEXT, PREV, QUIT, CONTINUE };
 
-   public:
-    music() : directory_path("../assets") {};
-    ~music() {};
+class Music {
+private:
+  ma_engine engine;
+  int SONG_ID;
+  Database _MUSIC_DB;
+  std::vector<Track> all_track_vector = _MUSIC_DB.get_all_tracks();
 
-    int music_list();
-    int play_audio(bool loop);
+public:
+  Music() {
+    if (ma_engine_init(NULL, &engine) != MA_SUCCESS)
+      std::cout << "Failed to init engine\n";
+  };
+  ~Music() { ma_engine_uninit(&engine); };
+  void music_menu();
+  PlayState play_audio(const char *filepath);
 };
 
-#endif  // AUDIO_HPP
+#endif // AUDIO_HPP

@@ -2,7 +2,8 @@
 #include "db.hpp"
 
 int main() {
-  Database MusicDB;
-  music start;
+  Music MP;
+  Database musicdb;
+  MP.music_menu();
   return 0;
 }

@@ -48,6 +48,7 @@ public:
   std::vector<Track> get_all_tracks();
   int get_track_by_id(int id);
   int delete_track(int id);
+  int increase_play_count(int id);
 };
 
 inline std::string get_text(sqlite3_stmt *stmt, int col);

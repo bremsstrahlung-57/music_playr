@@ -1,51 +1,105 @@
-#include <algorithm>
-#include <filesystem>
 #include <iostream>
-#include <string>
+#include <ostream>
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "audio.hpp"
+#include "db.hpp"
 
-int music::play_audio(bool loop)
-{
-    ma_result result;
-    ma_engine engine;
-    ma_sound sound;
-
-    result = ma_engine_init(NULL, &engine);
-    if (result != MA_SUCCESS) {
-        std::cout << "Failed to initialize audio engine.\n";
-        return -1;
+void Music::music_menu() {
+  while (true) {
+    std::vector<Track> all_tracks = _MUSIC_DB.get_all_tracks();
+    for (const Track &track : all_tracks) {
+      std::cout << "ID:       " << track.id << std::endl;
+      std::cout << "Name:     " << track.title << std::endl;
+      std::cout << "Artist:   " << track.artist << std::endl;
+      std::cout << "Time:     " << track.duration << "s\n";
+      std::cout << std::endl;
     }
 
-    // if (!std::filesystem::exists(directory_path) || !std::filesystem::is_directory(directory_path)) {
-    //     std::cerr << "Error: Directory not found or is not a directory: " << directory_path << std::endl;
-    //     return 1;
-    // }
+  choose_song:
+    std::cout << "Enter Song ID(0 to quit): ";
+    std::cin >> SONG_ID;
 
-    // for (const auto& entry : std::filesystem::directory_iterator(directory_path)) {
-    //     if (std::filesystem::is_regular_file(entry.path())) {
-    //         std::string extension = entry.path().extension().string();
-    //         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-    //         if (extension == ".mp3" || extension == ".wav" || extension == ".flac" || extension == ".ogg") {
-    //             std::cout << "Playing  " << entry.path().string() << std::endl;
-    //             ma_sound_init_from_file(&engine, entry.path().c_str(), 0, NULL, NULL, &sound);
-    //             if (result != MA_SUCCESS) {
-    //                 return result;
-    //             }
-    //         }
-    //     }
-    // }
-
-    ma_sound_init_from_file(&engine, "../assets/Be_Sincere.wav", 0, NULL, NULL, &sound);
-    if (result != MA_SUCCESS) {
-        return result;
+    if (SONG_ID == 0) {
+      break;
     }
-    ma_sound_start(&sound);
-    
-    std::cout << "Playing  " << "../assets/Be_Sincere.wav" << std::endl;
-    getchar();
 
-    ma_engine_uninit(&engine);
-    return 0;
+    size_t current_index = -1;
+    for (size_t i = 0; i < all_tracks.size(); ++i) {
+      if (all_tracks[i].id == SONG_ID) {
+        current_index = i;
+        break;
+      }
+    }
+
+    if (current_index == -1) {
+      std::cout << "No track found with ID " << SONG_ID << std::endl;
+      goto choose_song;
+    }
+
+    while (true) {
+      Track &current_track = all_tracks[current_index];
+      SONG_ID = current_track.id;
+      std::cout << "\nPlaying: " << current_track.title << std::endl;
+
+      PlayState user_choice = play_audio(current_track.file_path.c_str());
+
+      if (user_choice == PlayState::NEXT) {
+        if (current_index < all_tracks.size() - 1) {
+          current_index++;
+        } else {
+          std::cout << "End of playlist." << std::endl;
+          break;
+        }
+      } else if (user_choice == PlayState::PREV) {
+        if (current_index > 0) {
+          current_index--;
+        } else {
+          std::cout << "Already at the first track." << std::endl;
+        }
+      } else if (user_choice == PlayState::QUIT) {
+        break;
+      }
+    }
+  }
+}
+
+PlayState Music::play_audio(const char *filepath) {
+  ma_sound sound;
+  ma_result result =
+      ma_sound_init_from_file(&engine, filepath, 0, NULL, NULL, &sound);
+  if (result != MA_SUCCESS) {
+    std::cout << "Failed to load sound: " << filepath << std::endl;
+    return PlayState::QUIT;
+  }
+
+  ma_sound_start(&sound);
+  _MUSIC_DB.increase_play_count(SONG_ID);
+
+  char cmd;
+  while (true) {
+
+    if (ma_sound_at_end(&sound)) {
+      ma_sound_uninit(&sound);
+      return PlayState::NEXT;
+    }
+
+    std::cout << "p: pause | r: resume | q: quit | >: next | <: previous\n> ";
+    std::cin >> cmd;
+
+    if (cmd == 'p')
+      ma_sound_stop(&sound);
+    else if (cmd == 'r')
+      ma_sound_start(&sound);
+    else if (cmd == '>') {
+      ma_sound_uninit(&sound);
+      return PlayState::NEXT;
+    } else if (cmd == '<') {
+      ma_sound_uninit(&sound);
+      return PlayState::PREV;
+    } else if (cmd == 'q') {
+      ma_sound_uninit(&sound);
+      return PlayState::QUIT;
+    }
+  }
 }
