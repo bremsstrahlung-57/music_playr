@@ -49,6 +49,8 @@ public:
   int get_track_by_id(int id);
   int delete_track(int id);
   int increase_play_count(int id);
+  int add_last_played_timestamp(int id, int time);
+  int last_played_timestamp(int id);
 };
 
 inline std::string get_text(sqlite3_stmt *stmt, int col);

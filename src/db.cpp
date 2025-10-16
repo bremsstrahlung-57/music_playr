@@ -1,5 +1,6 @@
 #include "db.hpp"
 
+#include <sqlite3.h>
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 
@@ -222,6 +223,30 @@ int Database::increase_play_count(int id) {
   return 0;
 }
 
+int Database::add_last_played_timestamp(int id, int time) {
+  const char *sql =
+      "UPDATE tracks SET last_played = CASE WHEN id = ? THEN ? ELSE 0 END;";
+
+  sqlite3_stmt *stmt;
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+    return 1;
+  }
+
+  sqlite3_bind_int(stmt, 1, id);
+  sqlite3_bind_int(stmt, 2, time);
+
+  rc = sqlite3_step(stmt);
+  if (rc != SQLITE_DONE) {
+    std::cerr << "Update failed: " << sqlite3_errmsg(db) << std::endl;
+  }
+
+  sqlite3_finalize(stmt);
+  return 0;
+}
+
 AudioMetadata Database::get_metadata(const char *file_path) {
   AudioMetadata result;
   TagLib::FileRef file(file_path);
@@ -247,6 +272,28 @@ AudioMetadata Database::get_metadata(const char *file_path) {
   }
 
   return result;
+}
+int Database::last_played_timestamp(int id) {
+  const char *sql = "SELECT last_played FROM tracks WHERE id = ?;";
+
+  sqlite3_stmt *stmt;
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << '\n';
+    return -1;
+  }
+
+  sqlite3_bind_int(stmt, 1, id);
+
+  int timestamp = -1;
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    timestamp = sqlite3_column_int(stmt, 0);
+  } else {
+    std::cerr << "Track not found with ID [" << id << "].\n";
+  }
+
+  sqlite3_finalize(stmt);
+  return timestamp;
 }
 
 std::string Database::current_datetime() {

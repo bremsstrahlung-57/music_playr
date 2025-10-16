@@ -1,3 +1,4 @@
+#include "miniaudio/miniaudio.h"
 #include <iostream>
 #include <ostream>
 
@@ -66,6 +67,7 @@ void Music::music_menu() {
 
 PlayState Music::play_audio(const char *filepath) {
   ma_sound sound;
+  float paused_time = 0.0f;
   ma_result result =
       ma_sound_init_from_file(&engine, filepath, 0, NULL, NULL, &sound);
   if (result != MA_SUCCESS) {
@@ -73,6 +75,7 @@ PlayState Music::play_audio(const char *filepath) {
     return PlayState::QUIT;
   }
 
+  ma_sound_seek_to_second(&sound, _MUSIC_DB.last_played_timestamp(SONG_ID));
   ma_sound_start(&sound);
   _MUSIC_DB.increase_play_count(SONG_ID);
 
@@ -87,8 +90,11 @@ PlayState Music::play_audio(const char *filepath) {
     std::cout << "p: pause | r: resume | q: quit | >: next | <: previous\n> ";
     std::cin >> cmd;
 
-    if (cmd == 'p')
+    if (cmd == 'p') {
       ma_sound_stop(&sound);
+      ma_sound_get_cursor_in_seconds(&sound, &paused_time);
+    }
+
     else if (cmd == 'r')
       ma_sound_start(&sound);
     else if (cmd == '>') {
@@ -98,6 +104,8 @@ PlayState Music::play_audio(const char *filepath) {
       ma_sound_uninit(&sound);
       return PlayState::PREV;
     } else if (cmd == 'q') {
+      ma_sound_get_cursor_in_seconds(&sound, &paused_time);
+      _MUSIC_DB.add_last_played_timestamp(SONG_ID, paused_time);
       ma_sound_uninit(&sound);
       return PlayState::QUIT;
     }
