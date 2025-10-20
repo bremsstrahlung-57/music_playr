@@ -1,29 +1,31 @@
-#ifndef AUDIO_HPP
-#define AUDIO_HPP
-
+#pragma once
 #include "db.hpp"
 #include "miniaudio/miniaudio.h"
-#include <cstddef>
-#include <iostream>
+#include <string>
 #include <vector>
 
-enum class PlayState { NEXT, PREV, QUIT, CONTINUE };
-
+static float volume = 0.5f;
 class Music {
 private:
   ma_engine engine;
-  int SONG_ID;
-  Database _MUSIC_DB;
-  std::vector<Track> all_track_vector = _MUSIC_DB.get_all_tracks();
+  ma_sound sound;
+  Database music_db;
+
+  float paused_time = 0.0f;
+
+  bool is_playing = false;
+  bool is_paused = false;
+
+  std::vector<Track> all_track_vector;
 
 public:
-  Music() {
-    if (ma_engine_init(NULL, &engine) != MA_SUCCESS)
-      std::cout << "Failed to init engine\n";
-  };
-  ~Music() { ma_engine_uninit(&engine); };
-  void music_menu();
-  PlayState play_audio(const char *filepath);
-};
+  Music();
+  ~Music();
 
-#endif // AUDIO_HPP
+  void play(const std::string filepath, int track_id);
+  void pause(int track_id);
+  void stop();
+  bool is_finished();
+  void set_volume(float v);
+  float get_volume() const;
+};

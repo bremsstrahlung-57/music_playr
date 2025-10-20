@@ -273,6 +273,7 @@ AudioMetadata Database::get_metadata(const char *file_path) {
 
   return result;
 }
+
 int Database::last_played_timestamp(int id) {
   const char *sql = "SELECT last_played FROM tracks WHERE id = ?;";
 

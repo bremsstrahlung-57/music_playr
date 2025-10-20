@@ -1,9 +1,6 @@
-#include "audio.hpp"
-#include "db.hpp"
+#include "player.hpp"
 
 int main() {
-  Music MP;
-  Database musicdb;
-  MP.music_menu();
+  main_window();
   return 0;
 }
