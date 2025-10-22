@@ -28,4 +28,7 @@ public:
   bool is_finished();
   void set_volume(float v);
   float get_volume() const;
+  float current_time() const;
+  float max_time() const;
+  void set_position(float seek_point_in_seconds);
 };

@@ -81,3 +81,27 @@ void Music::set_volume(float v) {
 }
 
 float Music::get_volume() const { return volume; }
+
+float Music::current_time() const {
+  float curr_time = 0.0f;
+
+  if (is_playing || is_paused) {
+    ma_sound_get_cursor_in_seconds(&sound, &curr_time);
+  }
+
+  return curr_time;
+}
+
+float Music::max_time() const {
+  float total_time = 0.0f;
+
+  if (is_playing || is_paused) {
+    ma_sound_get_length_in_seconds(&sound, &total_time);
+  }
+
+  return total_time;
+}
+
+void Music::set_position(float seek_point_in_seconds) {
+  ma_sound_seek_to_second(&sound, seek_point_in_seconds);
+}

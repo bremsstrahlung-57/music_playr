@@ -1,6 +1,7 @@
 #include "../include/player.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -107,9 +108,39 @@ int main_window() {
       main_player.set_volume(vol);
     }
 
-    if (ImGui::Button("Exit")) {
-      exit(EXIT_SUCCESS);
+    static float seek_value = 0.0f;
+    static bool is_seeking = false;
+    
+    float live = main_player.current_time();
+    float total = main_player.max_time();
+    if (total <= 0.0f)
+      total = 0.0001f;
+
+    if (!is_seeking) {
+      seek_value = live;
     }
+
+    if (ImGui::SliderFloat("Seek", &seek_value, 0.0f, total)) {
+      is_seeking = true;
+    }
+    
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+      main_player.set_position(seek_value);
+      is_seeking = false;
+    } else if (!ImGui::IsItemActive()) {
+      is_seeking = false;
+    }
+
+    auto format_time = [](float seconds) {
+      int mins = static_cast<int>(seconds) / 60;
+      int secs = static_cast<int>(seconds) % 60;
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
+      return std::string(buf);
+    };
+    ImGui::SameLine();
+    ImGui::Text("%s / %s", format_time(live).c_str(),
+                format_time(total).c_str());
 
     for (const auto &track : ALL_TRACKS) {
       if (ImGui::Selectable(track.title.c_str())) {
@@ -117,7 +148,11 @@ int main_window() {
         goto play_from_selectable;
       }
       ImGui::Text("%s", track.artist.c_str());
-      ImGui::Text("%d", track.duration);
+      ImGui::Text("%s", format_time(track.duration).c_str());
+    }
+
+    if (ImGui::Button("Exit")) {
+      exit(EXIT_SUCCESS);
     }
 
     ImGui::End();
