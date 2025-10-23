@@ -1,10 +1,11 @@
 build/
 .cache/
+*.txt
 
 .vs/
 .vscode/
 
-vendor/
+third-party/
 assets
 
 *.db

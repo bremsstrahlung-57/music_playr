@@ -9,16 +9,23 @@
 #include <iostream>
 #include <sstream>
 
+#include "logger.hpp"
+
 Database::Database() {
   if (rc != SQLITE_OK) {
     fprintf(stderr, "Can't open your music files : %s\n", sqlite3_errmsg(db));
+    LOG_ERROR("Failed to open database: " + std::string(sqlite3_errmsg(db)));
     exit(EXIT_FAILURE);
   }
 
+  LOG_INFO("Database opened successfully: music.db");
   create_tables();
 }
 
-Database::~Database() { sqlite3_close(db); }
+Database::~Database() { 
+  sqlite3_close(db); 
+  LOG_INFO("Database connection closed");
+}
 
 void Database::create_tables() {
   const char *sql = "CREATE TABLE IF NOT EXISTS tracks ("
@@ -60,9 +67,11 @@ void Database::create_tables() {
 
   if (rc != SQLITE_OK) {
     fprintf(stderr, "SQL error: %s\n", err_msg);
+    LOG_ERROR("Failed to create database tables: " + std::string(err_msg));
     sqlite3_free(err_msg);
     exit(EXIT_FAILURE);
   }
+  LOG_INFO("Database tables verified/created successfully");
 }
 
 int Database::add_track(const char *_absolute_file_path) {
@@ -88,8 +97,10 @@ int Database::add_track(const char *_absolute_file_path) {
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
+    LOG_ERROR("Failed to insert track: " + std::string(sqlite3_errmsg(db)));
   } else {
     std::cout << "Record inserted successfully!" << std::endl;
+    LOG_INFO("Added track to database: " + music_metadata.title + " by " + music_metadata.artist);
   }
 
   sqlite3_finalize(stmt);
@@ -124,9 +135,11 @@ std::vector<Track> Database::get_all_tracks() {
 
   if (rc != SQLITE_DONE) {
     std::cerr << "Select failed: " << sqlite3_errmsg(db) << std::endl;
+    LOG_ERROR("Failed to retrieve tracks: " + std::string(sqlite3_errmsg(db)));
   }
 
   sqlite3_finalize(stmt);
+  LOG_DEBUG("Retrieved " + std::to_string(tracks.size()) + " tracks from database");
   return tracks;
 }
 
@@ -188,6 +201,7 @@ int Database::delete_track(int id) {
       std::cerr << "Delete failed: " << sqlite3_errmsg(db) << std::endl;
     } else {
       std::cout << "Track deleted successfully.\n";
+      LOG_INFO("Deleted track with ID " + std::to_string(id));
     }
 
   } else {
@@ -217,6 +231,9 @@ int Database::increase_play_count(int id) {
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     std::cerr << "Update failed: " << sqlite3_errmsg(db) << std::endl;
+    LOG_ERROR("Failed to increase play count for track ID " + std::to_string(id));
+  } else {
+    LOG_DEBUG("Increased play count for track ID " + std::to_string(id));
   }
 
   sqlite3_finalize(stmt);
@@ -241,6 +258,9 @@ int Database::add_last_played_timestamp(int id, int time) {
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     std::cerr << "Update failed: " << sqlite3_errmsg(db) << std::endl;
+    LOG_ERROR("Failed to update last played timestamp for track ID " + std::to_string(id));
+  } else {
+    LOG_DEBUG("Updated last played timestamp for track ID " + std::to_string(id) + " to " + std::to_string(time) + " seconds");
   }
 
   sqlite3_finalize(stmt);
@@ -295,6 +315,71 @@ int Database::last_played_timestamp(int id) {
 
   sqlite3_finalize(stmt);
   return timestamp;
+}
+
+AppState Database::load_app_state() {
+  AppState state{};
+  const char *sql = "SELECT last_track_id, last_playlist_id, volume, "
+                    "if_shuffled, is_repeat FROM app_state WHERE id = 1;";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+    return state;
+  }
+
+  rc = sqlite3_step(stmt);
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
+    state.last_track_id = sqlite3_column_int(stmt, 0);
+    state.last_playlist_id = sqlite3_column_int(stmt, 1);
+    state.volume = static_cast<float>(sqlite3_column_double(stmt, 2));
+    state.if_shuffled = sqlite3_column_int(stmt, 3);
+    state.is_repeat = sqlite3_column_int(stmt, 4);
+    LOG_DEBUG("Loaded app state from database");
+  } else {
+    const char *insert_sql =
+        "INSERT INTO app_state (id, last_track_id, last_playlist_id, volume, "
+        "if_shuffled, is_repeat) "
+        "VALUES (1, -1, -1, 0.5, 0, 0);";
+    sqlite3_exec(db, insert_sql, nullptr, nullptr, nullptr);
+
+    state.last_track_id = -1;
+    state.last_playlist_id = -1;
+    state.volume = 1.0f;
+    state.if_shuffled = false;
+    state.is_repeat = false;
+    LOG_INFO("Created default app state in database");
+  }
+
+  sqlite3_finalize(stmt);
+  return state;
+}
+
+void Database::save_app_state(const AppState &s) {
+  const char *sql =
+      "UPDATE app_state SET last_track_id = ?, last_playlist_id = ?, volume = "
+      "?, if_shuffled = ?, is_repeat = ? WHERE id = 1;";
+
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+    return;
+  }
+
+  sqlite3_bind_int(stmt, 1, s.last_track_id);
+  sqlite3_bind_int(stmt, 2, s.last_playlist_id);
+  sqlite3_bind_double(stmt, 3, s.volume);
+  sqlite3_bind_int(stmt, 4, s.if_shuffled);
+  sqlite3_bind_int(stmt, 5, s.is_repeat);
+
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+  // LOG_DEBUG("Saved app state to database");
 }
 
 std::string Database::current_datetime() {

@@ -4,17 +4,18 @@
 #include <string>
 #include <vector>
 
-static float volume = 0.5f;
+static float volume = 1.0f;
+
+enum class PlaybackState { Stopped, Playing, Paused };
 class Music {
 private:
   ma_engine engine;
   ma_sound sound;
   Database music_db;
 
-  float paused_time = 0.0f;
+  PlaybackState state = PlaybackState::Stopped;
 
-  bool is_playing = false;
-  bool is_paused = false;
+  float paused_time = 0.0f;
 
   std::vector<Track> all_track_vector;
 
@@ -31,4 +32,5 @@ public:
   float current_time() const;
   float max_time() const;
   void set_position(float seek_point_in_seconds);
+  PlaybackState get_state() const { return state; }
 };

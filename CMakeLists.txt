@@ -9,6 +9,7 @@ add_executable(music_playr
   src/db.cpp
   src/audio.cpp
   src/player.cpp
+  src/logger.cpp
   src/glad.c
   src/ImGui/imgui.cpp
   src/ImGui/imgui_draw.cpp
