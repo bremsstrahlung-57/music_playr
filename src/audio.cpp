@@ -1,4 +1,5 @@
 #include "miniaudio/miniaudio.h"
+#include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <ostream>
@@ -21,14 +22,13 @@ Music::~Music() {
 };
 
 void Music::play(const std::string filepath, int track_id) {
-  if (is_paused) {
+  if (state == PlaybackState::Paused) {
     ma_sound_start(&sound);
-    is_playing = true;
-    is_paused = false;
+    state = PlaybackState::Playing;
     return;
   }
 
-  if (is_playing) {
+  if (state == PlaybackState::Playing) {
     pause(track_id);
     return;
   }
@@ -44,8 +44,7 @@ void Music::play(const std::string filepath, int track_id) {
   ma_sound_seek_to_second(&sound, music_db.last_played_timestamp(track_id));
   ma_sound_start(&sound);
   music_db.increase_play_count(track_id);
-  is_playing = true;
-  is_paused = false;
+  state = PlaybackState::Playing;
 }
 
 void Music::pause(int track_id) {
@@ -53,21 +52,24 @@ void Music::pause(int track_id) {
     ma_sound_get_cursor_in_seconds(&sound, &paused_time);
     music_db.add_last_played_timestamp(track_id, paused_time);
     ma_sound_stop(&sound);
-    is_paused = true;
-    is_playing = false;
+    state = PlaybackState::Paused;
   }
-  return;
 }
 
 void Music::stop() {
-  if (is_playing || is_paused) {
+  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
     ma_sound_uninit(&sound);
-    is_playing = false;
-    is_paused = false;
+    state = PlaybackState::Stopped;
   }
 }
 
-bool Music::is_finished() { return is_playing && !ma_sound_is_playing(&sound); }
+bool Music::is_finished() {
+  if (state == PlaybackState::Playing && !ma_sound_is_playing(&sound)) {
+    state = PlaybackState::Stopped;
+    return true;
+  }
+  return false;
+}
 
 void Music::set_volume(float v) {
   if (v < 0.0f)
@@ -77,7 +79,9 @@ void Music::set_volume(float v) {
 
   volume = v;
 
-  ma_sound_set_volume(&sound, volume);
+  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
+    ma_sound_set_volume(&sound, volume);
+  }
 }
 
 float Music::get_volume() const { return volume; }
@@ -85,7 +89,7 @@ float Music::get_volume() const { return volume; }
 float Music::current_time() const {
   float curr_time = 0.0f;
 
-  if (is_playing || is_paused) {
+  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
     ma_sound_get_cursor_in_seconds(&sound, &curr_time);
   }
 
@@ -95,7 +99,7 @@ float Music::current_time() const {
 float Music::max_time() const {
   float total_time = 0.0f;
 
-  if (is_playing || is_paused) {
+  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
     ma_sound_get_length_in_seconds(&sound, &total_time);
   }
 
@@ -103,5 +107,7 @@ float Music::max_time() const {
 }
 
 void Music::set_position(float seek_point_in_seconds) {
-  ma_sound_seek_to_second(&sound, seek_point_in_seconds);
+  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
+    ma_sound_seek_to_second(&sound, seek_point_in_seconds);
+  }
 }

@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <ostream>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -48,23 +49,26 @@ int main_window() {
 
   Database main_database;
   Music main_player;
+  AppState state = main_database.load_app_state();
+  main_player.set_volume(state.volume);
 
   std::vector<Track> ALL_TRACKS = main_database.get_all_tracks();
   Track current_song;
   int current_idx = -1;
   bool found = false;
 
-  for (const auto &track : ALL_TRACKS) {
-    if (track.last_played != 0) {
-      current_song = track;
+  for (int i = 0; i < ALL_TRACKS.size(); ++i) {
+    if (ALL_TRACKS[i].id == state.last_track_id) {
+      current_song = ALL_TRACKS[i];
+      current_idx = i;
       found = true;
       break;
     }
-    current_idx++;
   }
 
   if (!found && !ALL_TRACKS.empty()) {
     current_song = ALL_TRACKS.front();
+    current_idx = 0;
     found = true;
   }
 
@@ -78,28 +82,41 @@ int main_window() {
     ImGui::Begin("Player");
 
     if (found) {
-      ImGui::Text("Current song: %d : %s", current_song.id,
-                  current_song.title.c_str());
+      ImGui::Text("Current song: %s", current_song.title.c_str());
     } else {
       ImGui::Text("No tracks available");
     }
 
     if (ImGui::Button("Play/Pause") && found) {
-    play_from_selectable:
+      // play_from_selectable:
       main_player.play(current_song.file_path, current_song.id);
     }
+    ImGui::SameLine();
+    ImGui::Text("State: %s",
+                main_player.get_state() == PlaybackState::Playing  ? "Playing"
+                : main_player.get_state() == PlaybackState::Paused ? "Paused"
+                                                                   : "Stopped");
+
     ImGui::SameLine();
     if (ImGui::Button("Next")) {
       main_player.stop();
       current_idx = (current_idx + 1) % ALL_TRACKS.size();
+      if (current_idx == ALL_TRACKS.size()) {
+        current_idx = 0;
+      }
       current_song = ALL_TRACKS[current_idx];
+      state.last_track_id = current_song.id;
       main_player.play(current_song.file_path, current_song.id);
     }
     ImGui::SameLine();
     if (ImGui::Button("Previous")) {
       main_player.stop();
       current_idx = (current_idx - 1 + ALL_TRACKS.size()) % ALL_TRACKS.size();
+      if (current_idx == 0) {
+        current_idx = ALL_TRACKS.size() - 1;
+      }
       current_song = ALL_TRACKS[current_idx];
+      state.last_track_id = current_song.id;
       main_player.play(current_song.file_path, current_song.id);
     }
 
@@ -107,10 +124,11 @@ int main_window() {
     if (ImGui::SliderFloat("Volume", &vol, 0.0f, 1.0f)) {
       main_player.set_volume(vol);
     }
+    state.volume = vol;
 
     static float seek_value = 0.0f;
     static bool is_seeking = false;
-    
+
     float live = main_player.current_time();
     float total = main_player.max_time();
     if (total <= 0.0f)
@@ -123,7 +141,7 @@ int main_window() {
     if (ImGui::SliderFloat("Seek", &seek_value, 0.0f, total)) {
       is_seeking = true;
     }
-    
+
     if (ImGui::IsItemDeactivatedAfterEdit()) {
       main_player.set_position(seek_value);
       is_seeking = false;
@@ -142,17 +160,30 @@ int main_window() {
     ImGui::Text("%s / %s", format_time(live).c_str(),
                 format_time(total).c_str());
 
-    for (const auto &track : ALL_TRACKS) {
-      if (ImGui::Selectable(track.title.c_str())) {
-        current_song = track;
-        goto play_from_selectable;
-      }
-      ImGui::Text("%s", track.artist.c_str());
-      ImGui::Text("%s", format_time(track.duration).c_str());
+    ImGui::Checkbox("Shuffle", &state.if_shuffled);
+    ImGui::Checkbox("Repeat", &state.is_repeat);
+    if (ImGui::IsItemEdited()) {
+      main_database.save_app_state(state);
     }
 
     if (ImGui::Button("Exit")) {
+      state.last_track_id = current_song.id;
+      state.volume = main_player.get_volume();
+      main_database.save_app_state(state);
       exit(EXIT_SUCCESS);
+    }
+
+    ImGui::End();
+
+    ImGui::Begin("Queue");
+
+    for (const auto &track : ALL_TRACKS) {
+      if (ImGui::Selectable(track.title.c_str())) {
+        // current_song = track;
+        // goto play_from_selectable;
+      }
+      ImGui::Text("%s", track.artist.c_str());
+      ImGui::Text("%s", format_time(track.duration).c_str());
     }
 
     ImGui::End();

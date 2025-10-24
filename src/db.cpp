@@ -218,7 +218,6 @@ int Database::increase_play_count(int id) {
   if (rc != SQLITE_DONE) {
     std::cerr << "Update failed: " << sqlite3_errmsg(db) << std::endl;
   }
-
   sqlite3_finalize(stmt);
   return 0;
 }
@@ -295,6 +294,68 @@ int Database::last_played_timestamp(int id) {
 
   sqlite3_finalize(stmt);
   return timestamp;
+}
+
+AppState Database::load_app_state() {
+  AppState state{};
+  const char *sql = "SELECT last_track_id, last_playlist_id, volume, "
+                    "if_shuffled, is_repeat FROM app_state WHERE id = 1;";
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+    return state;
+  }
+
+  rc = sqlite3_step(stmt);
+  if (rc == SQLITE_ROW) {
+    state.last_track_id = sqlite3_column_int(stmt, 0);
+    state.last_playlist_id = sqlite3_column_int(stmt, 1);
+    state.volume = static_cast<float>(sqlite3_column_double(stmt, 2));
+    state.if_shuffled = sqlite3_column_int(stmt, 3);
+    state.is_repeat = sqlite3_column_int(stmt, 4);
+  } else {
+    const char *insert_sql =
+        "INSERT INTO app_state (id, last_track_id, last_playlist_id, volume, "
+        "if_shuffled, is_repeat) "
+        "VALUES (1, -1, -1, 0.5, 0, 0);";
+    sqlite3_exec(db, insert_sql, nullptr, nullptr, nullptr);
+
+    state.last_track_id = -1;
+    state.last_playlist_id = -1;
+    state.volume = 1.0f;
+    state.if_shuffled = false;
+    state.is_repeat = false;
+  }
+
+  sqlite3_finalize(stmt);
+  return state;
+}
+
+void Database::save_app_state(const AppState &s) {
+  const char *sql =
+      "UPDATE app_state SET last_track_id = ?, last_playlist_id = ?, volume = "
+      "?, if_shuffled = ?, is_repeat = ? WHERE id = 1;";
+
+  sqlite3_stmt *stmt;
+  int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+    return;
+  }
+
+  sqlite3_bind_int(stmt, 1, s.last_track_id);
+  sqlite3_bind_int(stmt, 2, s.last_playlist_id);
+  sqlite3_bind_double(stmt, 3, s.volume);
+  sqlite3_bind_int(stmt, 4, s.if_shuffled);
+  sqlite3_bind_int(stmt, 5, s.is_repeat);
+
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
 }
 
 std::string Database::current_datetime() {
