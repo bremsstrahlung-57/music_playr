@@ -5,6 +5,7 @@ build/
 .vscode/
 
 vendor/
+vendor/imgui
 assets
 
 *.db
