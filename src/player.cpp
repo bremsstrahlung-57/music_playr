@@ -321,6 +321,7 @@ int main_window() {
       }
       ImGui::Text("%s", track.artist.c_str());
       ImGui::Text("%s", format_time(track.duration).c_str());
+      ImGui::Separator();
     }
 
     ImGui::End();
