@@ -1,8 +1,9 @@
 #include "../include/player.hpp"
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
-#include <ostream>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -15,6 +16,8 @@
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 int main_window() {
+  srand(time(NULL));
+
   glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
   if (!glfwInit()) {
     fprintf(stderr, "Failed to initialize GLFW\n");
@@ -72,8 +75,40 @@ int main_window() {
     found = true;
   }
 
+  auto play_next_track = [&]() {
+    if (ALL_TRACKS.empty()) {
+      return;
+    }
+
+    if (state.is_repeat) {
+      main_player.stop();
+      main_player.play(current_song.file_path, current_song.id);
+    } else if (state.if_shuffled) {
+      int new_idx;
+      do {
+        new_idx = rand() % ALL_TRACKS.size();
+      } while (new_idx == current_idx && ALL_TRACKS.size() > 1);
+
+      current_idx = new_idx;
+      current_song = ALL_TRACKS[current_idx];
+      state.last_track_id = current_song.id;
+      main_player.stop();
+      main_player.play(current_song.file_path, current_song.id);
+    } else {
+      current_idx = (current_idx + 1) % ALL_TRACKS.size();
+      current_song = ALL_TRACKS[current_idx];
+      state.last_track_id = current_song.id;
+      main_player.stop();
+      main_player.play(current_song.file_path, current_song.id);
+    }
+  };
+
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
+    if (main_player.is_finished() && found) {
+      play_next_track();
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -99,22 +134,15 @@ int main_window() {
 
     ImGui::SameLine();
     if (ImGui::Button("Next")) {
-      main_player.stop();
-      current_idx = (current_idx + 1) % ALL_TRACKS.size();
-      if (current_idx == ALL_TRACKS.size()) {
-        current_idx = 0;
+      if (state.is_repeat) {
+        state.is_repeat = false;
       }
-      current_song = ALL_TRACKS[current_idx];
-      state.last_track_id = current_song.id;
-      main_player.play(current_song.file_path, current_song.id);
+      play_next_track();
     }
     ImGui::SameLine();
     if (ImGui::Button("Previous")) {
       main_player.stop();
       current_idx = (current_idx - 1 + ALL_TRACKS.size()) % ALL_TRACKS.size();
-      if (current_idx == 0) {
-        current_idx = ALL_TRACKS.size() - 1;
-      }
       current_song = ALL_TRACKS[current_idx];
       state.last_track_id = current_song.id;
       main_player.play(current_song.file_path, current_song.id);

@@ -41,7 +41,7 @@ void Music::play(const std::string filepath, int track_id) {
     return;
   }
 
-  ma_sound_seek_to_second(&sound, music_db.last_played_timestamp(track_id));
+  // ma_sound_seek_to_second(&sound, music_db.last_played_timestamp(track_id));
   ma_sound_start(&sound);
   music_db.increase_play_count(track_id);
   state = PlaybackState::Playing;
@@ -49,18 +49,18 @@ void Music::play(const std::string filepath, int track_id) {
 
 void Music::pause(int track_id) {
   if (ma_sound_is_playing(&sound)) {
-    ma_sound_get_cursor_in_seconds(&sound, &paused_time);
-    music_db.add_last_played_timestamp(track_id, paused_time);
+    // ma_sound_get_cursor_in_seconds(&sound, &paused_time);
+    // music_db.add_last_played_timestamp(track_id, paused_time);
     ma_sound_stop(&sound);
     state = PlaybackState::Paused;
   }
 }
 
 void Music::stop() {
-  if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
+  // if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
     ma_sound_uninit(&sound);
     state = PlaybackState::Stopped;
-  }
+  // }
 }
 
 bool Music::is_finished() {
