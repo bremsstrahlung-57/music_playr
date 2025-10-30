@@ -58,9 +58,9 @@ void Music::pause(int track_id) {
 
 void Music::stop() {
   // if (state == PlaybackState::Playing || state == PlaybackState::Paused) {
-    ma_sound_uninit(&sound);
-    state = PlaybackState::Stopped;
   // }
+  ma_sound_uninit(&sound);
+  state = PlaybackState::Stopped;
 }
 
 bool Music::is_finished() {

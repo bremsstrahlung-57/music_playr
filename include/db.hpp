@@ -42,7 +42,7 @@ private:
   sqlite3 *db;
   AudioMetadata music_metadata;
   const char *music_database = "music.db";
-  int rc = sqlite3_open(music_database, &db);
+  int rc;
   void create_tables();
 
 public:

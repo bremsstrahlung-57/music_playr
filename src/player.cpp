@@ -1,12 +1,13 @@
 #include "../include/player.hpp"
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
 #include <stdio.h>
 #include <string>
 #include <taglib/fileref.h>
+#include <thread>
 #include <vector>
 
 #include "audio.hpp"
@@ -14,7 +15,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "imgui_internal.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 int main_window() {
@@ -105,7 +105,12 @@ int main_window() {
     }
   };
 
+  const int target_fps = 28;
+  const auto frame_duration = std::chrono::milliseconds(1000 / target_fps);
+
   while (!glfwWindowShouldClose(window)) {
+    auto frame_start = std::chrono::steady_clock::now();
+
     glfwPollEvents();
 
     if (main_player.is_finished() && found) {
@@ -127,7 +132,6 @@ int main_window() {
     ImGui::Separator();
 
     if (ImGui::Button("Play/Pause") && found) {
-      // play_from_selectable:
       main_player.play(current_song.file_path, current_song.id);
     }
     ImGui::SameLine();
@@ -315,13 +319,22 @@ int main_window() {
     ImGui::Separator();
 
     for (const auto &track : ALL_TRACKS) {
-      if (ImGui::Selectable(track.title.c_str())) {
-        // current_song = track;
-        // goto play_from_selectable;
+      if (ImGui::TreeNode(track.title.c_str())) {
+        ImGui::Text("Artist: %s", track.artist.c_str());
+        ImGui::Text("Duration: %s", format_time(track.duration).c_str());
+
+        if (ImGui::Button(("Play##" + std::to_string(track.id)).c_str())) {
+          current_song = track;
+          if ((main_player.get_state() == PlaybackState::Playing) ||
+              (main_player.get_state() == PlaybackState::Paused)) {
+            main_player.stop();
+            main_player.play(current_song.file_path, current_song.id);
+          }
+        }
+
+        ImGui::TreePop();
+        ImGui::Separator();
       }
-      ImGui::Text("%s", track.artist.c_str());
-      ImGui::Text("%s", format_time(track.duration).c_str());
-      ImGui::Separator();
     }
 
     ImGui::End();
@@ -333,8 +346,13 @@ int main_window() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
     glfwSwapBuffers(window);
+
+    auto frame_end = std::chrono::steady_clock::now();
+    auto elapsed = frame_end - frame_start;
+
+    if (elapsed < frame_duration)
+      std::this_thread::sleep_for(frame_duration - elapsed);
   }
 
   ImGui_ImplOpenGL3_Shutdown();
