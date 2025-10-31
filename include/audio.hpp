@@ -13,10 +13,8 @@ private:
   ma_sound sound;
   Database music_db;
 
-  PlaybackState state = PlaybackState::Stopped;
-
   float paused_time = 0.0f;
-
+  PlaybackState state = PlaybackState::Stopped;
   std::vector<Track> all_track_vector;
 
 public:
