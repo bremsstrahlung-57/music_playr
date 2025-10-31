@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
+#include <ostream>
 #include <stdio.h>
 #include <string>
 #include <taglib/fileref.h>
@@ -267,13 +269,10 @@ int main_window() {
 
       ImGui::Separator();
 
-      static bool dont_ask_me_next_time = false;
-      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-      ImGui::Checkbox("Don't ask me next time", &dont_ask_me_next_time);
-      ImGui::PopStyleVar();
-
       if (ImGui::Button("OK", ImVec2(120, 0))) {
         main_database.add_track(buf);
+        ALL_TRACKS.clear();
+        ALL_TRACKS = main_database.get_all_tracks();
         ImGui::CloseCurrentPopup();
       }
       ImGui::SetItemDefaultFocus();
@@ -332,6 +331,30 @@ int main_window() {
           }
         }
 
+        ImGui::SameLine();
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
+
+        if (ImGui::Button("Delete"))
+          ImGui::OpenPopup("DeleteConfirm");
+
+        if (ImGui::BeginPopupModal("DeleteConfirm", nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+          ImGui::Text("Delete this track?");
+          ImGui::Separator();
+          if (ImGui::Button("Yes", ImVec2(100, 0))) {
+            main_database.delete_track(track.id);
+            ALL_TRACKS.clear();
+            ALL_TRACKS = main_database.get_all_tracks();
+            ImGui::CloseCurrentPopup();
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("No", ImVec2(100, 0)))
+            ImGui::CloseCurrentPopup();
+          ImGui::EndPopup();
+        }
+
+        ImGui::PopStyleVar();
         ImGui::TreePop();
         ImGui::Separator();
       }
