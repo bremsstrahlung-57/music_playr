@@ -1,3 +1,4 @@
+#include "db.hpp"
 #include "miniaudio/miniaudio.h"
 #include <cstddef>
 #include <cstdio>
@@ -37,6 +38,7 @@ void Music::play(const std::string filepath, int track_id) {
 
   ma_result result =
       ma_sound_init_from_file(&engine, filepath.c_str(), 0, NULL, NULL, &sound);
+  ma_sound_set_volume(&sound, volume);
 
   if (result != MA_SUCCESS) {
     std::cerr << "Failed to load sound: " << filepath << std::endl;

@@ -4,8 +4,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
-#include <ostream>
 #include <stdio.h>
 #include <string>
 #include <taglib/fileref.h>
@@ -58,7 +56,6 @@ int main_window() {
   Music main_player;
   AppState state = main_database.load_app_state();
   main_player.set_volume(state.volume);
-
   std::vector<Track> ALL_TRACKS = main_database.get_all_tracks();
   Track current_song;
   int current_idx = -1;

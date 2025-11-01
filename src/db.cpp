@@ -91,8 +91,6 @@ int Database::add_track(const char *_absolute_file_path) {
   rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     std::cerr << "Execution failed: " << sqlite3_errmsg(db) << std::endl;
-  } else {
-    std::cout << "Record inserted successfully!" << std::endl;
   }
 
   sqlite3_finalize(stmt);
@@ -154,11 +152,6 @@ int Database::get_track_by_id(int id) {
     std::string artist = get_text(stmt, 2);
     int play_count = sqlite3_column_int(stmt, 3);
 
-    std::cout << "  Title:  " << title << "\n";
-    std::cout << "  Artist: " << artist << "\n";
-    std::cout << "  Path:   " << file_path << "\n";
-    std::cout << "  Times Played:   " << play_count << "\n";
-
   } else {
     std::cerr << "Track not found with ID [" << id << "].\n";
     sqlite3_finalize(stmt);
@@ -189,8 +182,6 @@ int Database::delete_track(int id) {
 
     if (rc != SQLITE_DONE) {
       std::cerr << "Delete failed: " << sqlite3_errmsg(db) << std::endl;
-    } else {
-      std::cout << "Track deleted successfully.\n";
     }
 
   } else {
