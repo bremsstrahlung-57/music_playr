@@ -244,7 +244,6 @@ int main_window() {
         ImGui::OpenPopup("Add");
       }
     }
-
     ImGui::PopStyleColor(3);
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -311,6 +310,24 @@ int main_window() {
       }
       ImGui::EndPopup();
     }
+
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Button,
+                          (ImVec4)ImColor::HSV(0.7f, 0.6f, 0.6f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                          (ImVec4)ImColor::HSV(0.7f, 0.7f, 0.7f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                          (ImVec4)ImColor::HSV(0.7f, 0.8f, 0.8f));
+
+    if (ImGui::Button("Make Playlist")) {
+      if (buf_path.empty()) {
+        ImGui::OpenPopup("Empty");
+      } else {
+        ImGui::OpenPopup("Add");
+      }
+    }
+
+    ImGui::PopStyleColor(3);
 
     ImGui::Separator();
 

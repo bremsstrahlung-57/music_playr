@@ -61,6 +61,11 @@ public:
   int last_played_timestamp(int id);
   AppState load_app_state();
   void save_app_state(const AppState &s);
+  int add_playlist(const char *playlist_name);
+  int add_track_to_playlist(int playlist_id, int track_id, int position);
+  int remove_track_from_playlist(int playlist_id, int track_id);
+  int delete_playlist(int id);
+  int get_next_position(int playlist_id);
 };
 
 inline std::string get_text(sqlite3_stmt *stmt, int col);
