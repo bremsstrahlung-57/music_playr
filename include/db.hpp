@@ -37,6 +37,12 @@ struct AppState {
   bool is_repeat = false;
 };
 
+struct Playlist {
+  int id;
+  std::string name;
+  std::vector<Track> tracks;
+};
+
 class Database {
 private:
   sqlite3 *db;
@@ -66,6 +72,8 @@ public:
   int remove_track_from_playlist(int playlist_id, int track_id);
   int delete_playlist(int id);
   int get_next_position(int playlist_id);
+  std::vector<Playlist> get_all_playlist();
+  std::vector<Track> get_all_tracks_by_playlist(int playlist_id);
 };
 
 inline std::string get_text(sqlite3_stmt *stmt, int col);

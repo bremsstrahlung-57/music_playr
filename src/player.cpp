@@ -15,6 +15,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "player.hpp"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 int main_window() {
@@ -57,6 +58,7 @@ int main_window() {
   AppState state = main_database.load_app_state();
   main_player.set_volume(state.volume);
   std::vector<Track> ALL_TRACKS = main_database.get_all_tracks();
+  std::vector<Playlist> ALL_PLAYLISTS = main_database.get_all_playlist();
   Track current_song;
   int current_idx = -1;
   bool found = false;
@@ -189,13 +191,6 @@ int main_window() {
       is_seeking = false;
     }
 
-    auto format_time = [](float seconds) {
-      int mins = static_cast<int>(seconds) / 60;
-      int secs = static_cast<int>(seconds) % 60;
-      char buf[16];
-      snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
-      return std::string(buf);
-    };
     ImGui::SameLine();
     ImGui::Text("%s / %s", format_time(live).c_str(),
                 format_time(total).c_str());
@@ -323,56 +318,39 @@ int main_window() {
       if (buf_path.empty()) {
         ImGui::OpenPopup("Empty");
       } else {
-        ImGui::OpenPopup("Add");
+        ImGui::OpenPopup("Create");
       }
     }
 
     ImGui::PopStyleColor(3);
 
+    if (ImGui::BeginPopupModal("Create", NULL,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+
+      ImGui::Text("Create playlist : %s", buf);
+
+      ImGui::Separator();
+
+      if (ImGui::Button("OK", ImVec2(120, 0))) {
+        main_database.add_playlist(buf);
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::SetItemDefaultFocus();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+
     ImGui::Separator();
 
-    for (const auto &track : ALL_TRACKS) {
-      if (ImGui::TreeNode(track.title.c_str())) {
-        ImGui::Text("Artist: %s", track.artist.c_str());
-        ImGui::Text("Duration: %s", format_time(track.duration).c_str());
+    render_playlist(main_database, main_player, ALL_PLAYLISTS, ALL_TRACKS,
+                    current_song);
 
-        if (ImGui::Button(("Play##" + std::to_string(track.id)).c_str())) {
-          current_song = track;
-          if ((main_player.get_state() == PlaybackState::Playing) ||
-              (main_player.get_state() == PlaybackState::Paused)) {
-            main_player.stop();
-            main_player.play(current_song.file_path, current_song.id);
-          }
-        }
+    ImGui::Separator();
 
-        ImGui::SameLine();
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
-
-        if (ImGui::Button("Delete"))
-          ImGui::OpenPopup("DeleteConfirm");
-
-        if (ImGui::BeginPopupModal("DeleteConfirm", nullptr,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-          ImGui::Text("Delete this track?");
-          ImGui::Separator();
-          if (ImGui::Button("Yes", ImVec2(100, 0))) {
-            main_database.delete_track(track.id);
-            ALL_TRACKS.clear();
-            ALL_TRACKS = main_database.get_all_tracks();
-            ImGui::CloseCurrentPopup();
-          }
-          ImGui::SameLine();
-          if (ImGui::Button("No", ImVec2(100, 0)))
-            ImGui::CloseCurrentPopup();
-          ImGui::EndPopup();
-        }
-
-        ImGui::PopStyleVar();
-        ImGui::TreePop();
-        ImGui::Separator();
-      }
-    }
+    render_track_list(main_database, main_player, ALL_TRACKS, current_song);
 
     ImGui::End();
 
@@ -399,4 +377,76 @@ int main_window() {
   glfwDestroyWindow(window);
   glfwTerminate();
   return 0;
+}
+
+void render_track_list(Database &main_database, Music &main_player,
+                       std::vector<Track> &ALL_TRACKS, Track &current_song) {
+  for (const auto &track : ALL_TRACKS) {
+    if (ImGui::TreeNode(track.title.c_str())) {
+      ImGui::Text("Artist: %s", track.artist.c_str());
+      ImGui::Text("Duration: %s", format_time(track.duration).c_str());
+
+      if (ImGui::Button(("Play##" + std::to_string(track.id)).c_str())) {
+        current_song = track;
+        if ((main_player.get_state() == PlaybackState::Playing) ||
+            (main_player.get_state() == PlaybackState::Paused)) {
+          main_player.stop();
+          main_player.play(current_song.file_path, current_song.id);
+        }
+      }
+
+      ImGui::SameLine();
+      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+
+      ImGui::SameLine();
+      ImGui::Button("Add to Playlist");
+
+      ImGui::SameLine();
+      if (ImGui::Button("Delete"))
+        ImGui::OpenPopup("DeleteConfirm");
+
+      if (ImGui::BeginPopupModal("DeleteConfirm", nullptr,
+                                 ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Delete this track?");
+        ImGui::Separator();
+        if (ImGui::Button("Yes", ImVec2(100, 0))) {
+          main_database.delete_track(track.id);
+          ALL_TRACKS.clear();
+          ALL_TRACKS = main_database.get_all_tracks();
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("No", ImVec2(100, 0)))
+          ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+      }
+
+      ImGui::PopStyleVar();
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
+  }
+}
+
+void render_playlist(Database &main_database, Music &main_player,
+                     std::vector<Playlist> &ALL_PLAYLISTS,
+                     std::vector<Track> &ALL_TRACKS, Track &current_song) {
+  if (ImGui::TreeNode("Playlists")) {
+    for (auto &playlist : ALL_PLAYLISTS) {
+      if (ImGui::TreeNode(playlist.name.c_str())) {
+        render_track_list(main_database, main_player, playlist.tracks, current_song);
+        ImGui::TreePop();
+      }
+      ImGui::Separator();
+    }
+    ImGui::TreePop();
+  }
+}
+
+std::string format_time(float seconds) {
+  int mins = static_cast<int>(seconds) / 60;
+  int secs = static_cast<int>(seconds) % 60;
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%02d:%02d", mins, secs);
+  return std::string(buf);
 }

@@ -462,6 +462,71 @@ int Database::get_next_position(int playlist_id) {
   return pos;
 }
 
+std::vector<Playlist> Database::get_all_playlist() {
+  std::vector<Playlist> playlists;
+  const char *sql = "SELECT id, name FROM playlists";
+
+  sqlite3_stmt *stmt;
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+  }
+
+  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    Playlist pl;
+    pl.id = sqlite3_column_int(stmt, 0);
+    pl.name = get_text(stmt, 1);
+    pl.tracks = get_all_tracks_by_playlist(pl.id);
+    playlists.push_back(pl);
+  }
+
+  if (rc != SQLITE_DONE) {
+    std::cerr << "Select failed: " << sqlite3_errmsg(db) << std::endl;
+  }
+
+  sqlite3_finalize(stmt);
+  return playlists;
+}
+
+std::vector<Track> Database::get_all_tracks_by_playlist(int playlist_id) {
+  std::vector<Track> playlist_tracks;
+  const char *sql =
+      "SELECT t.id, t.file_path, t.title, t.artist, t.duration, t.date_added, "
+      "t.last_played, t.play_count FROM playlist_tracks pt JOIN tracks t ON "
+      "pt.track_id = t.id WHERE pt.playlist_id = ? ORDER BY pt.position;";
+
+  sqlite3_stmt *stmt;
+  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+  if (rc != SQLITE_OK) {
+    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
+              << std::endl;
+  }
+
+  sqlite3_bind_int(stmt, 1, playlist_id);
+
+  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+    Track t;
+    t.id = sqlite3_column_int(stmt, 0);
+    t.file_path = get_text(stmt, 1);
+    t.title = get_text(stmt, 2);
+    t.artist = get_text(stmt, 3);
+    t.duration = sqlite3_column_int(stmt, 4);
+    t.date_added = get_text(stmt, 5);
+    t.last_played = sqlite3_column_int(stmt, 6);
+    t.play_count = sqlite3_column_int(stmt, 7);
+
+    playlist_tracks.push_back(t);
+  }
+
+  if (rc != SQLITE_DONE) {
+    std::cerr << "Select failed: " << sqlite3_errmsg(db) << std::endl;
+  }
+
+  sqlite3_finalize(stmt);
+  return playlist_tracks;
+}
+
 std::string Database::current_datetime() {
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
