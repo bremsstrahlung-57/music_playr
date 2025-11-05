@@ -69,13 +69,13 @@ The project employs a component-based architecture where:
 
 ## Demo
 
-<img width="438" height="348" alt="Screenshot 2025-11-05 203444" src="https://github.com/user-attachments/assets/d5593acd-0510-474e-bb45-6ea7dfb65701" />
+<img width="405" height="315" alt="Screenshot 2025-11-05 203444" src="https://github.com/user-attachments/assets/d5593acd-0510-474e-bb45-6ea7dfb65701" />
 
-<img width="438" height="348" alt="Screenshot 2025-11-05 203330" src="https://github.com/user-attachments/assets/7d3a64ca-44b9-4eb2-a6c8-f365bd44209f" />
+<img width="405" height="315" alt="Screenshot 2025-11-05 203330" src="https://github.com/user-attachments/assets/7d3a64ca-44b9-4eb2-a6c8-f365bd44209f" />
 
-<img width="876" height="697" alt="Screenshot 2025-11-05 203516" src="https://github.com/user-attachments/assets/0f2e668d-c42e-494d-aa96-afd1e5f10a11" />
+<img width="405" height="315" alt="Screenshot 2025-11-05 203516" src="https://github.com/user-attachments/assets/0f2e668d-c42e-494d-aa96-afd1e5f10a11" />
 
-<img width="438" height="348" alt="Screenshot 2025-11-05 203659" src="https://github.com/user-attachments/assets/19ae1047-3cae-4489-a6c3-5c05fa7ebc0e" />
+<img width="405" height="315" alt="Screenshot 2025-11-05 203659" src="https://github.com/user-attachments/assets/19ae1047-3cae-4489-a6c3-5c05fa7ebc0e" />
 
 ---
 
