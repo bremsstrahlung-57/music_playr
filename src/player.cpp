@@ -4,8 +4,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 #include <stdio.h>
 #include <string>
+#include <string_view>
 #include <taglib/fileref.h>
 #include <thread>
 #include <vector>
@@ -227,9 +229,9 @@ int main_window() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive,
                           (ImVec4)ImColor::HSV(0.7f, 0.8f, 0.8f));
 
-    std::string buf_path(buf);
+    std::string_view buf_path(buf);
 
-    if (ImGui::Button("Add Music")) {
+    if (ImGui::Button("+ Music")) {
       if (buf_path.empty()) {
         ImGui::OpenPopup("Empty");
       } else if (TagLib::FileRef(buf).isNull()) {
@@ -306,7 +308,12 @@ int main_window() {
       ImGui::EndPopup();
     }
 
-    ImGui::SameLine();
+    ImGui::Separator();
+
+    static char bufpl[128];
+    ImGui::InputText("Name", bufpl, IM_ARRAYSIZE(bufpl), flags);
+    std::string_view name_pl(bufpl);
+
     ImGui::PushStyleColor(ImGuiCol_Button,
                           (ImVec4)ImColor::HSV(0.7f, 0.6f, 0.6f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
@@ -314,8 +321,8 @@ int main_window() {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive,
                           (ImVec4)ImColor::HSV(0.7f, 0.8f, 0.8f));
 
-    if (ImGui::Button("Make Playlist")) {
-      if (buf_path.empty()) {
+    if (ImGui::Button("+ Playlist")) {
+      if (name_pl.empty()) {
         ImGui::OpenPopup("Empty");
       } else {
         ImGui::OpenPopup("Create");
@@ -327,12 +334,56 @@ int main_window() {
     if (ImGui::BeginPopupModal("Create", NULL,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
 
-      ImGui::Text("Create playlist : %s", buf);
+      ImGui::Text("Create Playlist : %s", bufpl);
 
       ImGui::Separator();
 
       if (ImGui::Button("OK", ImVec2(120, 0))) {
-        main_database.add_playlist(buf);
+        main_database.add_playlist(bufpl);
+        ALL_PLAYLISTS.clear();
+        ALL_PLAYLISTS = main_database.get_all_playlist();
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::SetItemDefaultFocus();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        ImGui::CloseCurrentPopup();
+      }
+      ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Delete Playlist")) {
+      ImGui::OpenPopup("Delete Playlist");
+    }
+
+    if (ImGui::BeginPopupModal("Delete Playlist", NULL,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+
+      static Playlist temp;
+      if (!ALL_PLAYLISTS.empty() && temp.id == 0) {
+        temp = ALL_PLAYLISTS.front();
+      }
+
+      if (ImGui::BeginCombo("Playlists", temp.name.c_str())) {
+        for (auto &playlist : ALL_PLAYLISTS) {
+          bool is_selected = (temp.id == playlist.id);
+          if (ImGui::Selectable(playlist.name.c_str(), is_selected)) {
+            temp = playlist;
+          }
+          if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+        ImGui::EndCombo();
+      }
+
+      ImGui::Separator();
+
+      if (ImGui::Button("OK", ImVec2(120, 0))) {
+        main_database.delete_playlist(temp.id);
+        ALL_PLAYLISTS.clear();
+        ALL_PLAYLISTS = main_database.get_all_playlist();
         ImGui::CloseCurrentPopup();
       }
       ImGui::SetItemDefaultFocus();
@@ -350,7 +401,8 @@ int main_window() {
 
     ImGui::Separator();
 
-    render_track_list(main_database, main_player, ALL_TRACKS, current_song);
+    render_track_list(main_database, main_player, ALL_TRACKS, ALL_PLAYLISTS,
+                      current_song);
 
     ImGui::End();
 
@@ -380,7 +432,9 @@ int main_window() {
 }
 
 void render_track_list(Database &main_database, Music &main_player,
-                       std::vector<Track> &ALL_TRACKS, Track &current_song) {
+                       std::vector<Track> &ALL_TRACKS,
+                       std::vector<Playlist> &ALL_PLAYLISTS,
+                       Track &current_song) {
   for (const auto &track : ALL_TRACKS) {
     if (ImGui::TreeNode(track.title.c_str())) {
       ImGui::Text("Artist: %s", track.artist.c_str());
@@ -392,16 +446,57 @@ void render_track_list(Database &main_database, Music &main_player,
             (main_player.get_state() == PlaybackState::Paused)) {
           main_player.stop();
           main_player.play(current_song.file_path, current_song.id);
+        } else if (main_player.get_state() == PlaybackState::Stopped) {
+          main_player.play(current_song.file_path, current_song.id);
         }
       }
 
-      ImGui::SameLine();
       ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
       ImGui::SameLine();
-      ImGui::Button("Add to Playlist");
+      if (ImGui::Button("+ to Playlist")) {
+        ImGui::OpenPopup("Add to Playlist");
+      }
 
-      ImGui::SameLine();
+      if (ImGui::BeginPopupModal("Add to Playlist", NULL,
+                                 ImGuiWindowFlags_AlwaysAutoResize)) {
+
+        static Playlist temp;
+        if (!ALL_PLAYLISTS.empty() && temp.id == 0) {
+          temp = ALL_PLAYLISTS.front();
+        }
+
+        if (ImGui::BeginCombo("Playlists", temp.name.c_str())) {
+          for (auto &playlist : ALL_PLAYLISTS) {
+            bool is_selected = (temp.id == playlist.id);
+            if (ImGui::Selectable(playlist.name.c_str(), is_selected)) {
+              temp = playlist;
+            }
+            if (is_selected) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+          ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+          main_database.add_track_to_playlist(temp.id, track.id,
+          main_database.get_next_position(temp.id));
+          ALL_PLAYLISTS.clear();
+          ALL_PLAYLISTS = main_database.get_all_playlist();
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+      }
+
+      ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
       if (ImGui::Button("Delete"))
         ImGui::OpenPopup("DeleteConfirm");
 
@@ -434,12 +529,67 @@ void render_playlist(Database &main_database, Music &main_player,
   if (ImGui::TreeNode("Playlists")) {
     for (auto &playlist : ALL_PLAYLISTS) {
       if (ImGui::TreeNode(playlist.name.c_str())) {
-        render_track_list(main_database, main_player, playlist.tracks, current_song);
+        render_playlist_track_list(main_database, main_player, playlist.tracks,
+                                   ALL_PLAYLISTS, current_song, playlist);
         ImGui::TreePop();
       }
       ImGui::Separator();
     }
     ImGui::TreePop();
+  }
+}
+
+void render_playlist_track_list(Database &main_database, Music &main_player,
+                                std::vector<Track> &ALL_TRACKS,
+                                std::vector<Playlist> &ALL_PLAYLISTS,
+                                Track &current_song,
+                                Playlist &current_playlist) {
+  for (const auto &track : ALL_TRACKS) {
+    if (ImGui::TreeNode(track.title.c_str())) {
+      ImGui::Text("Artist: %s", track.artist.c_str());
+      ImGui::Text("Duration: %s", format_time(track.duration).c_str());
+
+      if (ImGui::Button(("Play##" + std::to_string(track.id)).c_str())) {
+        current_song = track;
+        if ((main_player.get_state() == PlaybackState::Playing) ||
+            (main_player.get_state() == PlaybackState::Paused)) {
+          main_player.stop();
+          main_player.play(current_song.file_path, current_song.id);
+        } else if (main_player.get_state() == PlaybackState::Stopped) {
+          main_player.play(current_song.file_path, current_song.id);
+        }
+      }
+
+      ImGui::SameLine();
+      ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+
+      ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
+      if (ImGui::Button(("Remove##" + std::to_string(track.id)).c_str()))
+        ImGui::OpenPopup(
+            ("RemoveConfirm##" + std::to_string(track.id)).c_str());
+
+      if (ImGui::BeginPopupModal(
+              ("RemoveConfirm##" + std::to_string(track.id)).c_str(), nullptr,
+              ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Remove this track?");
+        ImGui::Separator();
+        if (ImGui::Button("Yes", ImVec2(100, 0))) {
+          main_database.remove_track_from_playlist(current_playlist.id,
+                                                   track.id);
+          ALL_PLAYLISTS.clear();
+          ALL_PLAYLISTS = main_database.get_all_playlist();
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("No", ImVec2(100, 0)))
+          ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+      }
+
+      ImGui::PopStyleVar();
+      ImGui::TreePop();
+      ImGui::Separator();
+    }
   }
 }
 
