@@ -164,33 +164,28 @@ int Database::get_track_by_id(int id) {
 }
 
 int Database::delete_track(int id) {
-  const char *sql = "DELETE FROM tracks WHERE id = ?";
+  const char *delete_track_sql = "DELETE FROM tracks WHERE id = ?";
+  const char *delete_from_playlists_sql =
+      "DELETE FROM playlist_tracks WHERE track_id = ?";
 
   sqlite3_stmt *stmt;
-  rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
 
-  if (rc != SQLITE_OK) {
-    std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db)
-              << std::endl;
-    return 1;
-  }
-
-  if (get_track_by_id(id) == 0) {
+  if (sqlite3_prepare_v2(db, delete_from_playlists_sql, -1, &stmt, nullptr) ==
+      SQLITE_OK) {
     sqlite3_bind_int(stmt, 1, id);
-
-    rc = sqlite3_step(stmt);
-
-    if (rc != SQLITE_DONE) {
-      std::cerr << "Delete failed: " << sqlite3_errmsg(db) << std::endl;
-    }
-
-  } else {
-    std::cerr << "Failed to Delete: " << sqlite3_errmsg(db) << std::endl;
+    sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-    return 1;
   }
 
-  sqlite3_finalize(stmt);
+  if (sqlite3_prepare_v2(db, delete_track_sql, -1, &stmt, nullptr) ==
+      SQLITE_OK) {
+    sqlite3_bind_int(stmt, 1, id);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+  } else {
+    std::cerr << "Failed to delete track: " << sqlite3_errmsg(db) << std::endl;
+    return 1;
+  }
   return 0;
 }
 

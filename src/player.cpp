@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
 #include <stdio.h>
 #include <string>
 #include <string_view>
@@ -508,6 +507,8 @@ void render_track_list(Database &main_database, Music &main_player,
           main_database.delete_track(track.id);
           ALL_TRACKS.clear();
           ALL_TRACKS = main_database.get_all_tracks();
+          ALL_PLAYLISTS.clear();
+          ALL_PLAYLISTS = main_database.get_all_playlist();
           ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
